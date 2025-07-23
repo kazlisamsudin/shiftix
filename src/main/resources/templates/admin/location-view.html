@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Location - Shiftix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 250px;
+            background: #2c3e50;
+            padding-top: 1rem;
+        }
+        .sidebar .nav-link {
+            color: #ecf0f1;
+            padding: 0.75rem 1rem;
+        }
+        .sidebar .nav-link:hover {
+            background-color: #34495e;
+            color: white;
+        }
+        .sidebar .nav-link.active {
+            background-color: #3498db;
+            color: white;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 2rem;
+        }
+        .location-icon {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+        }
+        .info-row {
+            border-bottom: 1px solid #e9ecef;
+            padding: 1rem 0;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        #map {
+            height: 300px;
+            width: 100%;
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="px-3 py-2">
+            <h4 class="text-white mb-4">
+                <i class="fas fa-clock me-2"></i>Shiftix
+            </h4>
+            <ul class="nav nav-pills flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="/admin/dashboard">
+                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/admin/users">
+                        <i class="fas fa-users me-2"></i>Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/admin/locations">
+                        <i class="fas fa-map-marker-alt me-2"></i>Locations
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/admin/reports">
+                        <i class="fas fa-chart-bar me-2"></i>Reports
+                    </a>
+                </li>
+                <li class="nav-item mt-3">
+                    <a class="nav-link" href="/logout">
+                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2>Location Details</h2>
+                <p class="text-muted">Complete location information and map view</p>
+            </div>
+            <div class="btn-group">
+                <a href="/admin/locations" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Locations
+                </a>
+                <a th:href="@{'/admin/locations/edit/' + ${location.id}}" class="btn btn-primary">
+                    <i class="fas fa-edit me-2"></i>Edit Location
+                </a>
+            </div>
+        </div>
+
+        <!-- Location Profile -->
+        <div class="row">
+            <div class="col-lg-8">
+                <!-- Location Info Card -->
+                <div class="card">
+                    <div class="card-body text-center">
+                        <!-- Location Icon -->
+                        <div class="location-icon mx-auto"
+                             th:classappend="${location.active} ? 'bg-success' : 'bg-secondary'">
+                            <i class="fas fa-map-marker-alt fa-4x text-white"></i>
+                        </div>
+
+                        <!-- Location Name and Status -->
+                        <h3 class="mb-2" th:text="${location.name ?: 'Unknown Location'}">Location Name</h3>
+                        <div class="mb-4">
+                            <span class="badge rounded-pill fs-6"
+                                  th:classappend="${location.active} ? 'bg-success' : 'bg-secondary'">
+                                <i th:classappend="${location.active} ? 'fas fa-check-circle' : 'fas fa-times-circle'" class="me-1"></i>
+                                <span th:text="${location.active ? 'Active Location' : 'Inactive Location'}">Status</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Information -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-info-circle me-2"></i>Location Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <strong><i class="fas fa-building me-2"></i>Name:</strong>
+                                </div>
+                                <div class="col-sm-9" th:text="${location.name ?: 'Not provided'}">Location Name</div>
+                            </div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <strong><i class="fas fa-map-marker-alt me-2"></i>Address:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    <span th:text="${location.address ?: 'Not provided'}">Address</span>
+                                    <br>
+                                    <small>
+                                        <a th:href="'https://maps.google.com/?q=' + ${location.address}"
+                                           target="_blank" class="text-decoration-none">
+                                            <i class="fas fa-external-link-alt me-1"></i>View on Google Maps
+                                        </a>
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <strong><i class="fas fa-globe me-2"></i>Coordinates:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    <div th:if="${location.latitude != null and location.longitude != null}">
+                                        <code>Lat: <span th:text="${#numbers.formatDecimal(location.latitude, 0, 6)}">0.000000</span></code><br>
+                                        <code>Lng: <span th:text="${#numbers.formatDecimal(location.longitude, 0, 6)}">0.000000</span></code>
+                                        <br>
+                                        <small>
+                                            <a th:href="'https://maps.google.com/?q=' + ${location.latitude} + ',' + ${location.longitude}"
+                                               target="_blank" class="text-decoration-none">
+                                                <i class="fas fa-crosshairs me-1"></i>View Coordinates on Map
+                                            </a>
+                                        </small>
+                                    </div>
+                                    <div th:unless="${location.latitude != null and location.longitude != null}">
+                                        <span class="text-muted">Coordinates not set</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <strong><i class="fas fa-circle me-2"></i>Geo-fence Radius:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    <span th:if="${location.radiusInMeters != null}">
+                                        <span class="badge bg-info" th:text="${location.radiusInMeters + ' meters'}">Radius</span>
+                                        <br><small class="text-muted">Employees must be within this distance to check in/out</small>
+                                    </span>
+                                    <span th:unless="${location.radiusInMeters != null}" class="text-muted">
+                                        Radius not set
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-row" th:if="${location.description}">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <strong><i class="fas fa-sticky-note me-2"></i>Description:</strong>
+                                </div>
+                                <div class="col-sm-9" th:text="${location.description}">Description</div>
+                            </div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <strong><i class="fas fa-toggle-on me-2"></i>Status:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    <span class="badge fs-6"
+                                          th:classappend="${location.active} ? 'bg-success' : 'bg-secondary'">
+                                        <i th:classappend="${location.active} ? 'fas fa-check-circle' : 'fas fa-times-circle'" class="me-1"></i>
+                                        <span th:text="${location.active ? 'Active - Available for attendance' : 'Inactive - Not available for attendance'}">Status</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-row">
+                            <div class="row">
+                                <div class="col-sm-3">
+                                    <strong><i class="fas fa-key me-2"></i>Location ID:</strong>
+                                </div>
+                                <div class="col-sm-9">
+                                    <code th:text="${location.id}">ID</code>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Map and Quick Actions -->
+            <div class="col-lg-4">
+                <!-- Map Card -->
+                <div class="card" th:if="${location.latitude != null and location.longitude != null}">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-map me-2"></i>Location Map
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="map"></div>
+                        <div class="p-3">
+                            <div class="d-grid gap-2">
+                                <a th:href="'https://maps.google.com/?q=' + ${location.latitude} + ',' + ${location.longitude}"
+                                   target="_blank" class="btn btn-outline-primary btn-sm">
+                                    <i class="fas fa-external-link-alt me-2"></i>Open in Google Maps
+                                </a>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="copyCoordinates()">
+                                    <i class="fas fa-copy me-2"></i>Copy Coordinates
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-cogs me-2"></i>Quick Actions
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-grid gap-2">
+                            <a th:href="@{'/admin/locations/edit/' + ${location.id}}" class="btn btn-primary">
+                                <i class="fas fa-edit me-2"></i>Edit Location
+                            </a>
+                            <button type="button" class="btn btn-outline-warning"
+                                    th:onclick="'toggleLocationStatus(' + ${location.id} + ', ' + ${location.active} + ')'">
+                                <i th:classappend="${location.active} ? 'fas fa-pause' : 'fas fa-play'" class="me-2"></i>
+                                <span th:text="${location.active ? 'Deactivate' : 'Activate'}">Toggle</span>
+                            </button>
+                            <button type="button" class="btn btn-danger"
+                                    th:data-location-id="${location.id}"
+                                    th:data-location-name="${location.name}"
+                                    onclick="deleteLocation(this.getAttribute('data-location-id'), this.getAttribute('data-location-name'))">
+                                <i class="fas fa-trash me-2"></i>Delete Location
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics Card -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>Usage Statistics
+                        </h6>
+                    </div>
+                    <div class="card-body text-center">
+                        <div class="row">
+                            <div class="col-6">
+                                <h4 class="text-primary mb-1">0</h4>
+                                <small class="text-muted">Today's Check-ins</small>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="text-success mb-1">0</h4>
+                                <small class="text-muted">This Week</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Back Navigation -->
+        <div class="mt-4">
+            <a href="/admin/locations" class="btn btn-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Locations
+            </a>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function deleteLocation(locationId, locationName) {
+            if (confirm('Are you sure you want to delete location: ' + locationName + '?\n\nThis action cannot be undone and may affect attendance records.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/admin/locations/delete/' + locationId;
+
+                const csrfToken = document.querySelector('meta[name="_csrf"]');
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = '_csrf';
+                    csrfInput.value = csrfToken.getAttribute('content');
+                    form.appendChild(csrfInput);
+                }
+
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function copyCoordinates() {
+            const lat = [[${location.latitude}]];
+            const lng = [[${location.longitude}]];
+            const coordinates = lat + ',' + lng;
+
+            navigator.clipboard.writeText(coordinates).then(function() {
+                alert('Coordinates copied to clipboard: ' + coordinates);
+            }, function(err) {
+                console.error('Could not copy coordinates: ', err);
+            });
+        }
+
+        function toggleLocationStatus(locationId, currentStatus) {
+            const action = currentStatus ? 'deactivate' : 'activate';
+            if (confirm('Are you sure you want to ' + action + ' this location?')) {
+                // This would need to be implemented in the backend
+                alert('Toggle functionality would be implemented here');
+            }
+        }
+
+        // Initialize map if coordinates are available
+        document.addEventListener('DOMContentLoaded', function() {
+            const lat = [[${location.latitude}]];
+            const lng = [[${location.longitude}]];
+
+            if (lat && lng) {
+                // Simple map implementation using Google Maps or similar
+                const mapDiv = document.getElementById('map');
+                if (mapDiv) {
+                    mapDiv.innerHTML = `
+                        <iframe
+                            width="100%"
+                            height="300"
+                            frameborder="0"
+                            style="border:0; border-radius: 0.5rem;"
+                            src="https://www.google.com/maps/embed/v1/place?key=YOUR_API_KEY&q=${lat},${lng}&zoom=16"
+                            allowfullscreen>
+                        </iframe>
+                    `;
+
+                    // Fallback: Show coordinates if iframe doesn't work
+                    setTimeout(() => {
+                        if (mapDiv.querySelector('iframe').contentDocument === null) {
+                            mapDiv.innerHTML = `
+                                <div class="d-flex align-items-center justify-content-center" style="height: 300px; background: #f8f9fa; border-radius: 0.5rem;">
+                                    <div class="text-center">
+                                        <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+                                        <h6>Location Coordinates</h6>
+                                        <p class="mb-0"><strong>Lat:</strong> ${lat}</p>
+                                        <p><strong>Lng:</strong> ${lng}</p>
+                                        <a href="https://maps.google.com/?q=${lat},${lng}" target="_blank" class="btn btn-sm btn-primary">
+                                            View on Google Maps
+                                        </a>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    }, 1000);
+                }
+            }
+        });
+    </script>
+</body>
+</html>

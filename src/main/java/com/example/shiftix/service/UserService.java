@@ -59,6 +59,12 @@ public class UserService implements UserDetailsService {
         return userRepository.save(user);
     }
 
+    public User updateUserWithNewPassword(User user) {
+        // Encode the new password before saving
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        return userRepository.save(user);
+    }
+
     public void deleteUser(Long id) {
         userRepository.deleteById(id);
     }

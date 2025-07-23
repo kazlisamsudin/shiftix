@@ -91,6 +91,7 @@ public class AdminController {
     @PostMapping("/users/edit/{id}")
     public String editUser(@PathVariable Long id,
                           @Valid @ModelAttribute("user") User user,
+                          @RequestParam(value = "newPassword", required = false) String newPassword,
                           BindingResult result,
                           Model model) {
         if (result.hasErrors()) {
@@ -98,15 +99,47 @@ public class AdminController {
             return "admin/user-edit";
         }
 
+        // Get existing user to preserve password if not changed
+        User existingUser = userService.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
         user.setId(id);
-        userService.updateUser(user);
+
+        // Only update password if a new one is provided
+        if (newPassword != null && !newPassword.trim().isEmpty()) {
+            user.setPassword(newPassword);
+            userService.updateUserWithNewPassword(user);
+        } else {
+            // Keep existing password
+            user.setPassword(existingUser.getPassword());
+            userService.updateUser(user);
+        }
+
         return "redirect:/admin/users?success=User updated successfully";
     }
 
     @PostMapping("/users/delete/{id}")
     public String deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
-        return "redirect:/admin/users?success=User deleted successfully";
+        try {
+            // Check if user exists before deletion
+            User userToDelete = userService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Prevent deletion of the last admin user
+            if (userToDelete.getRole() == Role.ADMIN) {
+                long adminCount = userService.findAllUsers().stream()
+                        .filter(u -> u.getRole() == Role.ADMIN)
+                        .count();
+                if (adminCount <= 1) {
+                    return "redirect:/admin/users?error=Cannot delete the last admin user";
+                }
+            }
+
+            userService.deleteUser(id);
+            return "redirect:/admin/users?success=User deleted successfully";
+        } catch (Exception e) {
+            return "redirect:/admin/users?error=Failed to delete user: " + e.getMessage();
+        }
     }
 
     // Location Management
@@ -158,8 +191,33 @@ public class AdminController {
 
     @PostMapping("/locations/delete/{id}")
     public String deleteLocation(@PathVariable Long id) {
-        locationService.deleteLocation(id);
-        return "redirect:/admin/locations?success=Location deleted successfully";
+        try {
+            // Check if location exists before deletion
+            Location locationToDelete = locationService.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Location not found"));
+
+            locationService.deleteLocation(id);
+            return "redirect:/admin/locations?success=Location deleted successfully";
+        } catch (Exception e) {
+            return "redirect:/admin/locations?error=Failed to delete location: " + e.getMessage();
+        }
+    }
+
+    // View endpoints for better user experience
+    @GetMapping("/users/view/{id}")
+    public String viewUser(@PathVariable Long id, Model model) {
+        User user = userService.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        model.addAttribute("user", user);
+        return "admin/user-view";
+    }
+
+    @GetMapping("/locations/view/{id}")
+    public String viewLocation(@PathVariable Long id, Model model) {
+        Location location = locationService.findById(id)
+                .orElseThrow(() -> new RuntimeException("Location not found"));
+        model.addAttribute("location", location);
+        return "admin/location-view";
     }
 
     // Attendance Reports
