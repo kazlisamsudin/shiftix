@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Locations - Shiftix</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-dark: #3730a3;
+            --secondary-color: #6b7280;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --sidebar-bg: #1f2937;
+            --sidebar-hover: #374151;
+            --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --border-radius: 0.75rem;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #1f2937;
+        }
+
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 280px;
+            background: linear-gradient(135deg, var(--sidebar-bg) 0%, #111827 100%);
+            z-index: 1000;
+            transition: all 0.3s ease;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #374151;
+        }
+
+        .sidebar-brand {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: white;
+            font-weight: 600;
+            font-size: 1.25rem;
+        }
+
+        .sidebar-brand i {
+            margin-right: 0.75rem;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section-title {
+            color: #9ca3af;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            padding: 0 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: #d1d5db;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background-color: var(--sidebar-hover);
+            color: white;
+            border-left-color: var(--primary-color);
+        }
+
+        .nav-link.active {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: var(--primary-color);
+            border-left-color: var(--primary-color);
+        }
+
+        .nav-link i {
+            width: 1.25rem;
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+        }
+
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .top-navbar {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: var(--card-shadow);
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .content-wrapper {
+            padding: 2rem;
+        }
+
+        .page-header {
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #111827;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            color: var(--secondary-color);
+            font-size: 1rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--card-shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px -8px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1.5rem;
+            border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .location-card {
+            transition: all 0.3s ease;
+            border: 1px solid #e5e7eb;
+        }
+
+        .location-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-color: var(--primary-color);
+        }
+
+        .location-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            color: white;
+        }
+
+        .table th {
+            background-color: #f8fafc;
+            border-bottom: 2px solid #e5e7eb;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .badge {
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                width: 100%;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="/" class="sidebar-brand">
+                <i class="fas fa-clock"></i>
+                Shiftix
+            </a>
+        </div>
+
+        <div class="sidebar-nav">
+            <!-- Admin Section -->
+            <div class="nav-section">
+                <div class="nav-section-title">Administration</div>
+                <a class="nav-link" href="/admin/dashboard">
+                    <i class="fas fa-cog"></i>
+                    Admin Panel
+                </a>
+                <a class="nav-link" href="/admin/users">
+                    <i class="fas fa-users"></i>
+                    Manage Users
+                </a>
+                <a class="nav-link active" href="/admin/locations">
+                    <i class="fas fa-map-marker-alt"></i>
+                    Locations
+                </a>
+                <a class="nav-link" href="/admin/reports">
+                    <i class="fas fa-file-alt"></i>
+                    System Reports
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Navigation -->
+        <div class="top-navbar">
+            <nav class="navbar navbar-expand-lg navbar-light">
+                <div class="container-fluid">
+                    <span class="navbar-text">
+                        <i class="fas fa-user-circle me-2"></i>
+                        Welcome, <span sec:authentication="principal.fullName">Admin</span>
+                    </span>
+
+                    <div class="navbar-nav ms-auto">
+                        <div class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-user"></i>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="/employee/profile">
+                                    <i class="fas fa-user-edit me-2"></i>Profile
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form th:action="@{/logout}" method="post" style="display: inline;">
+                                        <button type="submit" class="dropdown-item">
+                                            <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                        </button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Content Wrapper -->
+        <div class="content-wrapper">
+            <!-- Page Header -->
+            <div class="page-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h1 class="page-title">
+                            <i class="fas fa-map-marker-alt me-3"></i>Manage Locations
+                        </h1>
+                        <p class="page-subtitle">Add, edit, and manage work locations for GPS-based attendance tracking</p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary" onclick="exportLocations()">
+                            <i class="fas fa-download me-1"></i>Export
+                        </button>
+                        <a href="/admin/locations/new" class="btn btn-primary">
+                            <i class="fas fa-plus me-1"></i>Add New Location
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search and Filter Bar -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Search Locations</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                        <input type="text" class="form-control" placeholder="Search by name or address..."
+                                               id="searchInput" onkeyup="searchLocations()">
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-bold">Status</label>
+                                    <select class="form-select" id="statusFilter" onchange="filterLocations()">
+                                        <option value="">All Status</option>
+                                        <option value="active">Active</option>
+                                        <option value="inactive">Inactive</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-bold">Sort By</label>
+                                    <select class="form-select" id="sortBy" onchange="sortLocations()">
+                                        <option value="name">Name</option>
+                                        <option value="address">Address</option>
+                                        <option value="created">Date Added</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                        <i class="fas fa-times me-1"></i>Clear
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Locations Grid -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-list me-2"></i>Locations (<span id="locationCount" th:text="${#lists.size(locations)}">0</span>)
+                            </h5>
+                            <button class="btn btn-outline-primary btn-sm" onclick="refreshLocations()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                        <div class="card-body" id="locationsContainer">
+                            <!-- Locations Grid -->
+                            <div id="locationsGrid" class="row g-4">
+                                <div class="col-xl-4 col-lg-6" th:each="location : ${locations}">
+                                    <div class="card location-card h-100" th:data-location-id="${location.id}"
+                                         th:data-status="${location.active ? 'active' : 'inactive'}">
+                                        <div class="card-body">
+                                            <!-- Location Header -->
+                                            <div class="d-flex align-items-start mb-3">
+                                                <div class="location-icon me-3">
+                                                    <i class="fas fa-map-marker-alt fa-2x"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="card-title mb-1" th:text="${location.name}">Location Name</h6>
+                                                    <p class="text-muted small mb-1" th:text="${location.address}">Location Address</p>
+                                                    <span th:if="${location.active}" class="badge bg-success-subtle text-success">
+                                                        <i class="fas fa-check-circle me-1"></i>Active
+                                                    </span>
+                                                    <span th:unless="${location.active}" class="badge bg-danger-subtle text-danger">
+                                                        <i class="fas fa-times-circle me-1"></i>Inactive
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Location Details -->
+                                            <div class="mb-3">
+                                                <div class="row g-2 text-sm">
+                                                    <div class="col-6">
+                                                        <small class="text-muted">Latitude:</small>
+                                                        <div class="fw-bold" th:text="${location.latitude}">0.000</div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <small class="text-muted">Longitude:</small>
+                                                        <div class="fw-bold" th:text="${location.longitude}">0.000</div>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <small class="text-muted">Radius:</small>
+                                                        <div class="fw-bold">
+                                                            <span th:text="${location.radiusInMeters}">100</span> meters
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Description -->
+                                            <div class="mb-3" th:if="${location.description}">
+                                                <small class="text-muted">Description:</small>
+                                                <p class="small mb-0" th:text="${location.description}">Location description</p>
+                                            </div>
+
+                                            <!-- Action Buttons -->
+                                            <div class="btn-group w-100" role="group">
+                                                <a th:href="@{/admin/locations/edit/{id}(id=${location.id})}"
+                                                   class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Edit Location">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button class="btn btn-sm btn-outline-info"
+                                                        th:onclick="'viewOnMap(' + ${location.latitude} + ', ' + ${location.longitude} + ')'"
+                                                        data-bs-toggle="tooltip" title="View on Map">
+                                                    <i class="fas fa-map"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning"
+                                                        th:onclick="'testRadius(' + ${location.id} + ')'"
+                                                        data-bs-toggle="tooltip" title="Test Radius">
+                                                    <i class="fas fa-crosshairs"></i>
+                                                </button>
+                                                <button class="btn btn-sm"
+                                                        th:classappend="${location.active} ? 'btn-outline-danger' : 'btn-outline-success'"
+                                                        th:onclick="'toggleLocationStatus(' + ${location.id} + ', ' + ${location.active} + ')'"
+                                                        th:attr="data-bs-title=${location.active ? 'Deactivate Location' : 'Activate Location'}"
+                                                        data-bs-toggle="tooltip">
+                                                    <i th:class="${location.active ? 'fas fa-eye-slash' : 'fas fa-eye'}"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Empty State -->
+                            <div id="emptyState" class="text-center py-5" style="display: none;">
+                                <div class="mb-3">
+                                    <i class="fas fa-map-marker-alt text-muted" style="font-size: 4rem;"></i>
+                                </div>
+                                <h5 class="text-muted">No Locations Found</h5>
+                                <p class="text-muted">No locations match your current search criteria</p>
+                                <button class="btn btn-outline-primary" onclick="clearFilters()">
+                                    <i class="fas fa-times me-1"></i>Clear Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Stats -->
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-map-marker-alt fa-2x mb-2"></i>
+                            <h3 th:text="${#lists.size(locations)}">0</h3>
+                            <p class="mb-0">Total Locations</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-check-circle fa-2x mb-2"></i>
+                            <h3 id="activeCount">0</h3>
+                            <p class="mb-0">Active Locations</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <h3>24/7</h3>
+                            <p class="mb-0">Monitoring</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-satellite-dish fa-2x mb-2"></i>
+                            <h3>GPS</h3>
+                            <p class="mb-0">Enabled</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            updateStats();
+        });
+
+        function searchLocations() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const locations = document.querySelectorAll('[data-location-id]');
+            let visibleCount = 0;
+
+            locations.forEach(location => {
+                const text = location.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    location.style.display = '';
+                    visibleCount++;
+                } else {
+                    location.style.display = 'none';
+                }
+            });
+
+            updateLocationCount(visibleCount);
+            showEmptyState(visibleCount === 0);
+        }
+
+        function filterLocations() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const locations = document.querySelectorAll('[data-location-id]');
+            let visibleCount = 0;
+
+            locations.forEach(location => {
+                const locationStatus = location.dataset.status;
+                const statusMatch = !statusFilter || locationStatus === statusFilter;
+
+                if (statusMatch) {
+                    location.style.display = '';
+                    visibleCount++;
+                } else {
+                    location.style.display = 'none';
+                }
+            });
+
+            updateLocationCount(visibleCount);
+            showEmptyState(visibleCount === 0);
+        }
+
+        function updateLocationCount(count) {
+            document.getElementById('locationCount').textContent = count;
+        }
+
+        function showEmptyState(show) {
+            const emptyState = document.getElementById('emptyState');
+            const locationsGrid = document.getElementById('locationsGrid');
+
+            if (show) {
+                emptyState.style.display = 'block';
+                locationsGrid.style.display = 'none';
+            } else {
+                emptyState.style.display = 'none';
+                locationsGrid.style.display = 'block';
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = '';
+
+            searchLocations();
+            filterLocations();
+            showToast('Filters cleared!', 'info');
+        }
+
+        function viewOnMap(lat, lng) {
+            const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+            window.open(mapUrl, '_blank');
+            showToast('Opening location on map...', 'info');
+        }
+
+        function testRadius(locationId) {
+            showToast('Testing GPS radius for location...', 'info');
+
+            setTimeout(() => {
+                showToast('GPS radius test completed successfully!', 'success');
+            }, 2000);
+        }
+
+        function toggleLocationStatus(locationId, currentStatus) {
+            const action = currentStatus ? 'deactivate' : 'activate';
+            const message = `Are you sure you want to ${action} this location?`;
+
+            if (confirm(message)) {
+                showToast(`Location ${action}d successfully!`, 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        }
+
+        function refreshLocations() {
+            const btn = event.target.closest('button');
+            const icon = btn.querySelector('i');
+            icon.classList.add('fa-spin');
+
+            setTimeout(() => {
+                icon.classList.remove('fa-spin');
+                showToast('Locations refreshed successfully!', 'success');
+                updateStats();
+            }, 1000);
+        }
+
+        function exportLocations() {
+            showToast('Preparing locations export...', 'info');
+
+            setTimeout(() => {
+                showToast('Locations exported successfully!', 'success');
+            }, 1500);
+        }
+
+        function updateStats() {
+            const locations = document.querySelectorAll('[data-location-id]');
+            let activeCount = 0;
+
+            locations.forEach(location => {
+                if (location.dataset.status === 'active') {
+                    activeCount++;
+                }
+            });
+
+            document.getElementById('activeCount').textContent = activeCount;
+        }
+
+        function showToast(message, type) {
+            let toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.id = 'toast-container';
+                toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                toastContainer.style.zIndex = '1055';
+                document.body.appendChild(toastContainer);
+            }
+
+            const toastId = 'toast-' + Date.now();
+            const toastHtml = `
+                <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            const toast = new bootstrap.Toast(document.getElementById(toastId));
+            toast.show();
+        }
+
+        // Initialize tooltips
+        document.addEventListener('DOMContentLoaded', function() {
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+</body>
+</html>

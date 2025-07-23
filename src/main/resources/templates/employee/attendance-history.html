@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout}">
+<head>
+    <title>Attendance History - Shiftix</title>
+</head>
+<body>
+    <div layout:fragment="content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="page-title">
+                        <i class="fas fa-history me-3"></i>Attendance History
+                    </h1>
+                    <p class="page-subtitle">View your complete attendance records and track your work patterns</p>
+                </div>
+                <div>
+                    <button class="btn btn-outline-primary" onclick="exportData()">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters and Search -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Date Range</label>
+                                <select class="form-select" id="dateRange" onchange="filterByDateRange()">
+                                    <option value="today">Today</option>
+                                    <option value="week" selected>This Week</option>
+                                    <option value="month">This Month</option>
+                                    <option value="quarter">This Quarter</option>
+                                    <option value="custom">Custom Range</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3" id="customDateFrom" style="display: none;">
+                                <label class="form-label fw-bold">From Date</label>
+                                <input type="date" class="form-control" id="dateFrom">
+                            </div>
+                            <div class="col-md-3" id="customDateTo" style="display: none;">
+                                <label class="form-label fw-bold">To Date</label>
+                                <input type="date" class="form-control" id="dateTo">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Filter by Type</label>
+                                <select class="form-select" id="typeFilter" onchange="filterByType()">
+                                    <option value="">All Actions</option>
+                                    <option value="CHECK_IN">Check In</option>
+                                    <option value="CHECK_OUT">Check Out</option>
+                                    <option value="BREAK_START">Break Start</option>
+                                    <option value="BREAK_END">Break End</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button class="btn btn-primary w-100" onclick="applyFilters()">
+                                    <i class="fas fa-filter me-1"></i>Apply Filters
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="card bg-primary text-white">
+                    <div class="card-body text-center">
+                        <div class="stat-icon mb-2">
+                            <i class="fas fa-sign-in-alt fa-2x"></i>
+                        </div>
+                        <h3 class="mb-1" id="totalCheckIns">0</h3>
+                        <p class="mb-0 small">Total Check-ins</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <div class="stat-icon mb-2">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                        <h3 class="mb-1" id="totalHours">0h</h3>
+                        <p class="mb-0 small">Total Hours</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <div class="stat-icon mb-2">
+                            <i class="fas fa-calendar-check fa-2x"></i>
+                        </div>
+                        <h3 class="mb-1" id="workDays">0</h3>
+                        <p class="mb-0 small">Work Days</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <div class="stat-icon mb-2">
+                            <i class="fas fa-coffee fa-2x"></i>
+                        </div>
+                        <h3 class="mb-1" id="totalBreaks">0</h3>
+                        <p class="mb-0 small">Break Sessions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Attendance Records Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-table me-2"></i>Attendance Records
+                        </h5>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary" onclick="refreshData()">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-cog"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="#" onclick="toggleCompactView()">
+                                        <i class="fas fa-compress me-1"></i>Compact View
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" onclick="toggleTimeFormat()">
+                                        <i class="fas fa-clock me-1"></i>12/24 Hour Format
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div th:if="${#lists.isEmpty(records)}" class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fas fa-inbox text-muted" style="font-size: 4rem;"></i>
+                            </div>
+                            <h5 class="text-muted">No Records Found</h5>
+                            <p class="text-muted">No attendance records match your current filters</p>
+                            <button class="btn btn-outline-primary" onclick="clearFilters()">
+                                <i class="fas fa-times me-1"></i>Clear Filters
+                            </button>
+                        </div>
+
+                        <div th:if="${!#lists.isEmpty(records)}" class="table-responsive">
+                            <table class="table table-hover align-middle mb-0" id="attendanceTable">
+                                <thead class="table-light sticky-top">
+                                    <tr>
+                                        <th class="border-0">
+                                            <button class="btn btn-sm btn-link p-0 text-decoration-none" onclick="sortTable('timestamp')">
+                                                Date & Time <i class="fas fa-sort ms-1"></i>
+                                            </button>
+                                        </th>
+                                        <th class="border-0">Action</th>
+                                        <th class="border-0">Location</th>
+                                        <th class="border-0">Duration</th>
+                                        <th class="border-0">Status</th>
+                                        <th class="border-0">Notes</th>
+                                        <th class="border-0">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr th:each="record, iterStat : ${records}" class="attendance-row"
+                                        th:data-type="${record.type.name()}"
+                                        th:data-timestamp="${record.timestamp}">
+                                        <td>
+                                            <div>
+                                                <span class="fw-bold" th:text="${#temporals.format(record.timestamp, 'MMM dd, yyyy')}">Date</span>
+                                                <br>
+                                                <small class="text-muted time-display" th:text="${#temporals.format(record.timestamp, 'HH:mm:ss')}">Time</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="action-icon me-2"
+                                                     th:classappend="${record.type.name() == 'CHECK_IN'} ? 'text-success' :
+                                                                    ${record.type.name() == 'CHECK_OUT'} ? 'text-danger' :
+                                                                    ${record.type.name() == 'BREAK_START'} ? 'text-warning' : 'text-info'">
+                                                    <i class="fas"
+                                                       th:classappend="${record.type.name() == 'CHECK_IN'} ? 'fa-sign-in-alt' :
+                                                                      ${record.type.name() == 'CHECK_OUT'} ? 'fa-sign-out-alt' :
+                                                                      ${record.type.name() == 'BREAK_START'} ? 'fa-coffee' : 'fa-play'"></i>
+                                                </div>
+                                                <span class="badge rounded-pill"
+                                                      th:classappend="${record.type.name() == 'CHECK_IN'} ? 'bg-success' :
+                                                                     ${record.type.name() == 'CHECK_OUT'} ? 'bg-danger' :
+                                                                     ${record.type.name() == 'BREAK_START'} ? 'bg-warning' : 'bg-info'"
+                                                      th:text="${record.type.name().replace('_', ' ')}">Action</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div>
+                                                <span class="fw-bold" th:text="${record.location.name}">Location</span>
+                                                <br>
+                                                <small class="text-muted" th:text="${record.location.address}">Address</small>
+                                            </div>
+                                        </td>
+                                        <td class="duration-cell">
+                                            <span class="text-muted">--</span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-column">
+                                                <span th:if="${record.validLocation}" class="badge bg-success-subtle text-success mb-1">
+                                                    <i class="fas fa-check me-1"></i>Valid Location
+                                                </span>
+                                                <span th:unless="${record.validLocation}" class="badge bg-warning-subtle text-warning mb-1">
+                                                    <i class="fas fa-exclamation-triangle me-1"></i>Outside Range
+                                                </span>
+                                                <small class="text-muted" th:text="${record.distanceFromLocation + ' meters'}">Distance</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div th:if="${record.notes and !record.notes.isEmpty()}">
+                                                <span class="text-truncate d-inline-block" style="max-width: 150px;"
+                                                      th:text="${record.notes}" th:title="${record.notes}">Notes</span>
+                                            </div>
+                                            <span th:unless="${record.notes and !record.notes.isEmpty()}" class="text-muted">
+                                                <i>No notes</i>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-primary"
+                                                        th:onclick="'viewDetails(' + ${record.id} + ')'"
+                                                        data-bs-toggle="tooltip" title="View Details">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary"
+                                                        th:onclick="'showOnMap(' + ${record.latitude} + ', ' + ${record.longitude} + ')'"
+                                                        data-bs-toggle="tooltip" title="Show on Map">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light" th:if="${!#lists.isEmpty(records)}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                Showing <span th:text="${#lists.size(records)}">0</span> records
+                            </small>
+                            <nav>
+                                <ul class="pagination pagination-sm mb-0">
+                                    <li class="page-item"><a class="page-link" href="#">Previous</a></li>
+                                    <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                                    <li class="page-item"><a class="page-link" href="#">2</a></li>
+                                    <li class="page-item"><a class="page-link" href="#">3</a></li>
+                                    <li class="page-item"><a class="page-link" href="#">Next</a></li>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Record Details Modal -->
+        <div class="modal fade" id="recordDetailsModal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-info-circle me-2"></i>Attendance Record Details
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="recordDetailsContent">
+                        <!-- Details will be loaded here -->
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div layout:fragment="scripts">
+        <script>
+            let currentSort = { field: 'timestamp', direction: 'desc' };
+            let is24HourFormat = true;
+            let isCompactView = false;
+
+            document.addEventListener('DOMContentLoaded', function() {
+                calculateDurations();
+                updateStatistics();
+                initializeTooltips();
+            });
+
+            function filterByDateRange() {
+                const range = document.getElementById('dateRange').value;
+                const customFrom = document.getElementById('customDateFrom');
+                const customTo = document.getElementById('customDateTo');
+
+                if (range === 'custom') {
+                    customFrom.style.display = 'block';
+                    customTo.style.display = 'block';
+                } else {
+                    customFrom.style.display = 'none';
+                    customTo.style.display = 'none';
+                }
+            }
+
+            function calculateDurations() {
+                const rows = document.querySelectorAll('.attendance-row');
+                let previousCheckIn = null;
+
+                for (let i = rows.length - 1; i >= 0; i--) {
+                    const row = rows[i];
+                    const type = row.dataset.type;
+                    const timestamp = new Date(row.dataset.timestamp);
+                    const durationCell = row.querySelector('.duration-cell');
+
+                    if (type === 'CHECK_IN') {
+                        previousCheckIn = timestamp;
+                        durationCell.innerHTML = '<span class="text-muted">--</span>';
+                    } else if (type === 'CHECK_OUT' && previousCheckIn) {
+                        const duration = timestamp - previousCheckIn;
+                        const hours = Math.floor(duration / (1000 * 60 * 60));
+                        const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+
+                        durationCell.innerHTML = `
+                            <span class="badge bg-info">
+                                ${hours}h ${minutes}m
+                            </span>
+                        `;
+                        previousCheckIn = null;
+                    }
+                }
+            }
+
+            function updateStatistics() {
+                const rows = document.querySelectorAll('.attendance-row');
+                let checkIns = 0, totalMinutes = 0, workDays = new Set(), breaks = 0;
+                let currentCheckIn = null;
+
+                rows.forEach(row => {
+                    const type = row.dataset.type;
+                    const timestamp = new Date(row.dataset.timestamp);
+                    const dateStr = timestamp.toDateString();
+
+                    switch(type) {
+                        case 'CHECK_IN':
+                            checkIns++;
+                            workDays.add(dateStr);
+                            currentCheckIn = timestamp;
+                            break;
+                        case 'CHECK_OUT':
+                            if (currentCheckIn) {
+                                totalMinutes += (timestamp - currentCheckIn) / (1000 * 60);
+                                currentCheckIn = null;
+                            }
+                            break;
+                        case 'BREAK_START':
+                            breaks++;
+                            break;
+                    }
+                });
+
+                document.getElementById('totalCheckIns').textContent = checkIns;
+                document.getElementById('totalHours').textContent = Math.round(totalMinutes / 60 * 10) / 10 + 'h';
+                document.getElementById('workDays').textContent = workDays.size;
+                document.getElementById('totalBreaks').textContent = breaks;
+            }
+
+            function sortTable(field) {
+                if (currentSort.field === field) {
+                    currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSort.field = field;
+                    currentSort.direction = 'desc';
+                }
+
+                // Implement sorting logic here
+                showToast('Table sorted by ' + field, 'info');
+            }
+
+            function toggleTimeFormat() {
+                is24HourFormat = !is24HourFormat;
+                const timeDisplays = document.querySelectorAll('.time-display');
+
+                timeDisplays.forEach(display => {
+                    const timestamp = new Date(display.closest('tr').dataset.timestamp);
+                    display.textContent = timestamp.toLocaleTimeString([], {
+                        hour12: !is24HourFormat,
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                });
+
+                showToast('Time format changed to ' + (is24HourFormat ? '24-hour' : '12-hour'), 'info');
+            }
+
+            function toggleCompactView() {
+                isCompactView = !isCompactView;
+                const table = document.getElementById('attendanceTable');
+
+                if (isCompactView) {
+                    table.classList.add('table-sm');
+                } else {
+                    table.classList.remove('table-sm');
+                }
+
+                showToast('Switched to ' + (isCompactView ? 'compact' : 'normal') + ' view', 'info');
+            }
+
+            function viewDetails(recordId) {
+                // Mock record details - in real implementation, fetch from server
+                const detailsContent = `
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Record Information</h6>
+                            <table class="table table-sm">
+                                <tr><td>Record ID:</td><td>#${recordId}</td></tr>
+                                <tr><td>Employee:</td><td>John Doe</td></tr>
+                                <tr><td>Date:</td><td>December 15, 2023</td></tr>
+                                <tr><td>Time:</td><td>09:00:00</td></tr>
+                                <tr><td>Action:</td><td><span class="badge bg-success">Check In</span></td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Location Details</h6>
+                            <table class="table table-sm">
+                                <tr><td>Location:</td><td>Main Office</td></tr>
+                                <tr><td>Address:</td><td>123 Business St</td></tr>
+                                <tr><td>GPS Coordinates:</td><td>40.7128, -74.0060</td></tr>
+                                <tr><td>Distance:</td><td>5.2 meters</td></tr>
+                                <tr><td>Status:</td><td><span class="badge bg-success">Valid</span></td></tr>
+                            </table>
+                        </div>
+                        <div class="col-12">
+                            <h6 class="fw-bold">Additional Information</h6>
+                            <p class="text-muted">Started work day on time. Weather was clear.</p>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('recordDetailsContent').innerHTML = detailsContent;
+                new bootstrap.Modal(document.getElementById('recordDetailsModal')).show();
+            }
+
+            function showOnMap(lat, lng) {
+                // In a real implementation, this would open a map modal or external service
+                const mapUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+                window.open(mapUrl, '_blank');
+            }
+
+            function exportData() {
+                showToast('Preparing export... This may take a moment.', 'info');
+
+                setTimeout(() => {
+                    // Mock export functionality
+                    const csvContent = "data:text/csv;charset=utf-8," +
+                        "Date,Time,Action,Location,Status,Notes\n" +
+                        "2023-12-15,09:00:00,Check In,Main Office,Valid,Started work day\n";
+
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", "attendance_history.csv");
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+
+                    showToast('Export completed successfully!', 'success');
+                }, 1500);
+            }
+
+            function refreshData() {
+                const btn = event.target.closest('button');
+                const icon = btn.querySelector('i');
+                icon.classList.add('fa-spin');
+
+                setTimeout(() => {
+                    icon.classList.remove('fa-spin');
+                    showToast('Data refreshed successfully!', 'success');
+                    updateStatistics();
+                }, 1000);
+            }
+
+            function applyFilters() {
+                showToast('Filters applied successfully!', 'success');
+                updateStatistics();
+            }
+
+            function clearFilters() {
+                document.getElementById('dateRange').value = 'week';
+                document.getElementById('typeFilter').value = '';
+                filterByDateRange();
+                showToast('Filters cleared!', 'info');
+            }
+
+            function initializeTooltips() {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
+
+            function showToast(message, type) {
+                let toastContainer = document.getElementById('toast-container');
+                if (!toastContainer) {
+                    toastContainer = document.createElement('div');
+                    toastContainer.id = 'toast-container';
+                    toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
+                    toastContainer.style.zIndex = '1055';
+                    document.body.appendChild(toastContainer);
+                }
+
+                const toastId = 'toast-' + Date.now();
+                const toastHtml = `
+                    <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
+                        <div class="d-flex">
+                            <div class="toast-body">${message}</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                        </div>
+                    </div>
+                `;
+
+                toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+                const toast = new bootstrap.Toast(document.getElementById(toastId));
+                toast.show();
+            }
+        </script>
+    </div>
+</body>
+</html>

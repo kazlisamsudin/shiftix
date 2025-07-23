@@ -1,0 +1,49 @@
+name: shiftix_mobile
+description: Mobile attendance tracking app for Shiftix system
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.10.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP requests
+  http: ^1.1.0
+
+  # Location services
+  geolocator: ^10.1.0
+  permission_handler: ^11.0.1
+
+  # State management
+  provider: ^6.0.5
+
+  # Local storage
+  shared_preferences: ^2.2.2
+
+  # UI components
+  cupertino_icons: ^1.0.2
+  google_fonts: ^6.1.0
+
+  # Date formatting
+  intl: ^0.18.1
+
+  # Network connectivity
+  connectivity_plus: ^5.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/
